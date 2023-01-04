@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { BleManager } from 'react-native-ble-plx'
-import { PermissionsAndroid, Platform, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, View, StatusBar } from 'react-native'
+import { PermissionsAndroid, Platform, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, View, StatusBar, Switch } from 'react-native'
 
 const manager = new BleManager()
 
 const App = () => {
   const [btList, setBTList] = useState([])
+  const [hideUntiled, setHideUntitled] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
 
   const permissionChecking = () => {
@@ -32,14 +33,21 @@ const App = () => {
     })
   }
 
+  const stopScan = () => {
+    setIsScanning(false)
+    manager.stopDeviceScan()
+  }
+
   const onScan = async () => {
     if (isScanning) {
-      setIsScanning(false)
-      manager.stopDeviceScan()
+      stopScan()
       return 
     }
     const granted = await permissionChecking()
     setIsScanning(true)
+    setTimeout(() => {
+      stopScan()
+    }, 15000)
     manager.startDeviceScan(null, null, (error, device) => {
       if (error) {
         console.log('[error]:', error)
@@ -69,13 +77,22 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle={'dark-content'} backgroundColor={'#FFFFFF'} />
-      <View style={{backgroundColor: '#FFFFFF', padding: 15, marginBottom: 10}}>
-        <Text style={{color: '#4C5A69', fontWeight: 'bold', fontSize: 25}}>BT Distance</Text>
-        <Text style={{color: '#4C5A69'}}>by Purwanto</Text>
+      <View style={styles.header}>
+        <Text style={styles.appTitle}>BT Distance</Text>
+        <View style={styles.row}>
+          <Text style={styles.appFounder}>by Purwanto</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <Text style={styles.hideUntiled}>Hide untitled</Text>
+          <Switch style={{marginLeft: 5}} value={hideUntiled} onChange={() => setHideUntitled(v => !v)} />
+        </View>
+        </View>
       </View>
       <ScrollView>
       {
-        btList.sort((a, b) => a.distance - b.distance).map((bl, blI) => (
+        btList
+        .sort((a, b) => a.distance - b.distance)
+        .filter(f => hideUntiled ? f.localName : true)
+        .map((bl, blI) => (
           <TouchableOpacity style={[styles.btList, {
             borderLeftColor: bl.name ? '#19AD64' : '#AFB9C5'
           }]} key={blI} >
@@ -111,6 +128,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EEF2F5'
   },
+  header: {
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    marginBottom: 10,
+  },
+  appTitle: {color: '#4C5A69', fontWeight: 'bold', fontSize: 25},
+  appFounder: {color: '#4C5A69'},
   button: {
     margin: 15,
     padding: 15,
@@ -128,9 +152,18 @@ const styles = StyleSheet.create({
     borderLeftColor: '#19AD64',
     justifyContent: 'space-between',
   },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
   distance: {
     fontSize: 12,
     color: '#4C5A69'
+  },
+  hideUntiled: {
+    fontSize: 12,
+    color: '#4C5A69',
   },
   numbering: {
     fontSize: 25,
